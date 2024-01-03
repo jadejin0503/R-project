@@ -1,0 +1,38 @@
+# Name: Xuan Jin
+# Student ID: s2477282 
+
+## This jags file changes a bit in variables because each experimental run will be
+## based on its own second order random walk latent variables in model 2. Same 
+## precision parameters with model 1 are used here. It can be read in R and 
+## generate posterior information as well.
+
+model{
+  ## use a big for-loop for jth parameters representing each experimental run
+  for(j in 1:Nrun){
+    M[j] ~ dunif(0,4000)         # define the expected value of effect at zero dose
+    x[1,j] ~ dnorm(0, 0.01)      # define another second order random walk
+    x[2,j] ~ dnorm(x[1,j], tau)  # specify distribution of x[2,j]
+    
+    ## for each concentration level get its own latent variables
+    for(i in 3:Ntotal){
+      x[i,j] ~ dnorm(2*x[i-1,j]-x[i-2,j], tau)
+	  }
+	  
+	  ## similarly, do some trasformations like model 1
+	  m[1,j] <- 0           # initialize m[1,j]
+	  for(i in 2:Ntotal){
+	    m[i,j] <- m[i-1,j] - exp(x[i-1,j])
+	  }
+	  
+	  ## simulate expected effect under this more specific and flexible model
+	  for(i in 1:Ntotal){
+	    mu[i,j] <- exp(m[i,j])                       # specify mu[i,j]
+	    effect[i,j] ~ dnorm(M[j] * mu[i,j], tau0)    # specify effect[i,j]
+    }
+	  
+	}
+	
+	## priors: generate random values for tau and tau0 from gamma distribution
+  tau ~ dgamma(4, 0.04)
+  tau0 ~ dgamma(4, 0.04)
+}

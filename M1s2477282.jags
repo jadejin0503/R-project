@@ -1,0 +1,38 @@
+# Name: Xuan Jin
+# Student ID: s2477282 
+
+## This jags file will define the prior and proposal distributions of model 1
+## for monotonic regression. It can be read in R and generate posterior information.
+
+model{
+  ## define the expected value of effect at zero dose
+  for(j in 1:Nrun){
+    M[j] ~ dunif(0,4000)
+	}
+	
+	## priors: generate random values for tau and tau0 from gamma distribution
+  tau ~ dgamma(4, 0.04)
+  tau0 ~ dgamma(4, 0.04)
+	
+  ## define a second order random walk as the prior distribution of latent variable x
+  x[1] ~ dnorm(0, 0.01)        # prior for x[1]
+  x[2] ~ dnorm(x[1], tau)      # specify distribution for x[2]
+  for(i in 3:Ntotal){          # specify distribution for x[i] i>2
+    x[i] ~ dnorm(2*x[i-1]-x[i-2], tau)
+	}
+	
+  ## transformations of x to get m and mu
+  m[1] <- 0                   # specify m[1]
+  mu[1] <- 1                  # specify mu[1]
+  for(i in 2:Ntotal){
+    m[i] <- m[i-1] - exp(x[i-1])    # specify m[i] for i>1
+    mu[i] <- exp(m[i])              # specify mu[i] for i>1
+	}
+  
+  # simulate effect data based on M, mu and tau0
+  for(j in 1:Nrun){
+    for(i in 1:Ntotal){
+	    effect[i,j] ~ dnorm(M[j] * mu[i], tau0)    # specify effect[i,j]
+	    }
+  }
+}
